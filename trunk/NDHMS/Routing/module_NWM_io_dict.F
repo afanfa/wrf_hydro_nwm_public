@@ -1208,10 +1208,10 @@ subroutine initLdasDict(ldasOutDict,procId,diagFlag)
    ! Loop through and calculate missing/fill/min/max values that will be placed
    ! into the NetCDF attributes after scale_factor/add_offset are applied.
    do i=1,numLdasVars
-      ldasOutDict%fillComp(i) = NINT((ldasOutDict%fillReal(i)+ldasOutDict%addOffset(i))/ldasOutDict%scaleFactor(i))
-      ldasOutDict%missingComp(i) = NINT((ldasOutDict%missingReal(i)+ldasOutDict%addOffset(i))/ldasOutDict%scaleFactor(i))
-      ldasOutDict%validMinComp(i) = NINT((ldasOutDict%validMinReal(i)+ldasOutDict%addOffset(i))/ldasOutDict%scaleFactor(i))
-      ldasOutDict%validMaxComp(i) = NINT((ldasOutDict%validMaxReal(i)+ldasOutDict%addOffset(i))/ldasOutDict%scaleFactor(i))
+      ldasOutDict%fillComp(i) = NINT((ldasOutDict%fillReal(i)+ldasOutDict%addOffset(i))/ldasOutDict%scaleFactor(i),KIND=8)
+      ldasOutDict%missingComp(i) = NINT((ldasOutDict%missingReal(i)+ldasOutDict%addOffset(i))/ldasOutDict%scaleFactor(i), KIND=8)
+      ldasOutDict%validMinComp(i) = NINT((ldasOutDict%validMinReal(i)+ldasOutDict%addOffset(i))/ldasOutDict%scaleFactor(i), KIND=8)
+      ldasOutDict%validMaxComp(i) = NINT((ldasOutDict%validMaxReal(i)+ldasOutDict%addOffset(i))/ldasOutDict%scaleFactor(i), KIND=8)
    end do
 
 end subroutine initLdasDict
