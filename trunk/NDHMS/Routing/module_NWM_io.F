@@ -1275,7 +1275,8 @@ subroutine output_NoahMP_NWM(outDir,iGrid,output_timestep,itime,startdate,date,i
          call nwmCheck(diagFlag,iret,'ERROR: Unable to create GDAL_DataType attribute')
 
          ! Create dimensions
-         iret = nf90_def_dim(ftnNoahMP,'time',NF90_UNLIMITED,dimId(1))
+         !iret = nf90_def_dim(ftnNoahMP,'time',NF90_UNLIMITED,dimId(1))
+         iret = nf90_def_dim(ftnNoahMP,'time',1,dimId(1))
          call nwmCheck(diagFlag,iret,'ERROR: Unable to define time dimension')
          iret = nf90_def_dim(ftnNoahMP,'x',global_nx,dimId(2))
          call nwmCheck(diagFlag,iret,'ERROR: Unable to define x dimension')
