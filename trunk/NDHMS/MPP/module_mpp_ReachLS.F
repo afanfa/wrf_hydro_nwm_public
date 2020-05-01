@@ -22,6 +22,7 @@
 MODULE MODULE_mpp_ReachLS
 
   use module_mpp_land, only:  io_id, my_id, mpp_status, mpp_land_max_int1, mpp_land_sync, HYDRO_COMM_WORLD
+  use hashtable
   implicit none
 
 
@@ -404,9 +405,24 @@ MODULE MODULE_mpp_ReachLS
 !              endif
 !           end do
 ! 1001      continue
-!        end do
+!     end do
 
-       call hash_getLocalIndx(gLinkId,glinksl,LLINKID,LLINKIDINDX,LLINKLEN)
+       block
+         type(hash_t) :: hash_table
+         integer :: val,it
+         logical :: found
+         
+         call hash_table%set_all_idx(LLINKID)
+         do it=1, glinksl
+            call hash_table%get(gLinkId(it), val, found)
+            if(found .eqv. .true.) then
+               llinkidindx(val) = it
+            end if
+         end do
+         call hash_table%clear()
+       end block
+
+!       call hash_getLocalIndx(gLinkId,glinksl,LLINKID,LLINKIDINDX,LLINKLEN)
 
        call mpp_land_sync()
   end subroutine getLocalIndx

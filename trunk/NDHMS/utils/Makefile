@@ -26,7 +26,7 @@ all:	$(OBJS)
 ## The insertion of compile-time constants strangely requires the capital F in the extension.
 .F.o:
 	@echo "Utils Makefile:"
-	$(COMPILER90) $(CPPINVOKE) $(CPPFLAGS) -o $(@) $(F90FLAGS) $(LDFLAGS) $(MODFLAG) -I$(NETCDFINC) $(*).F
+	$(COMPILER90) $(CPPINVOKE) -O3 $(CPPFLAGS) -o $(@) $(F90FLAGS) $(LDFLAGS) $(MODFLAG) -I$(NETCDFINC) $(*).F
 	@echo ""
 	ar -r ../lib/libHYDRO.a $(@)
 	cp *.mod ../mod

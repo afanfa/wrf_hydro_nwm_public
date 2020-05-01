@@ -5,9 +5,17 @@
 
 include ../macros
 
-OBJS =  CPL_WRF.o mpp_land.o module_mpp_ReachLS.o module_mpp_GWBUCKET.o
+OBJS =  hashtable.o CPL_WRF.o mpp_land.o module_mpp_ReachLS.o module_mpp_GWBUCKET.o
 
 all:	$(OBJS)
+
+hashtable.o: hashtable.F
+	@echo ""
+	$(RMD) $(*).o $(*).mod $(*).stb *~
+	$(COMPILER90) $(F90FLAGS) $(LDFLAGS) -c $(*).F
+	cp hashtable.mod ../mod
+	ar -r ../lib/libHYDRO.a $(@)
+
 mpp_land.o: mpp_land.F
 	@echo ""
 	$(RMD) $(*).o $(*).mod $(*).stb *~
@@ -22,7 +30,7 @@ CPL_WRF.o: CPL_WRF.F
 	$(COMPILER90) $(F90FLAGS) $(LDFLAGS) -c $(*).F
 	ar -r ../lib/libHYDRO.a $(@)
 
-module_mpp_ReachLS.o: module_mpp_ReachLS.F
+module_mpp_ReachLS.o: module_mpp_ReachLS.F  hashtable.o
 	@echo ""
 	$(RMD) $(*).o $(*).mod $(*).stb *~
 	$(COMPILER90) $(F90FLAGS) $(LDFLAGS) -c $(*).F
