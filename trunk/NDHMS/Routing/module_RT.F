@@ -40,6 +40,7 @@ MODULE module_Routing
    use module_persistence_levelpool_hybrid, only: persistence_levelpool_hybrid
    use module_rfc_forecasts, only: rfc_forecasts
    use module_hydro_stop, only: HYDRO_stop
+   use hashtable
 
    IMPLICIT NONE
 
@@ -53,20 +54,6 @@ MODULE module_Routing
    real*8,  parameter :: zeroDbl=0.0000000000000000000_r8
    integer, parameter :: r4 = selected_real_kind(4)
    real  ,  parameter :: zeroFlt=0.0000000000000000000_r4
-
-  interface
-     subroutine hash_LandRT(ch_lnkrt,ch_lnkrt_sl,i_start,i_end,j_start,j_end,LLINKID,LNLINKSL,leading_dim) bind(C, name="LandRT_C")
-
-       use iso_c_binding, only : c_int
-
-       integer(c_int) :: ch_lnkrt(*), LLINKID(*)
-       
-       integer(c_int) :: ch_lnkrt_sl(*) !OUTPUT
-       
-       integer(c_int),value :: i_start,i_end,j_start,j_end,LNLINKSL, leading_dim
-
-     end subroutine hash_LandRT
-  end interface
 
 CONTAINS
 
@@ -1018,8 +1005,23 @@ subroutine LandRT_ini(did)
         !       end  do
         !    end do
         ! end do
-        
-        call hash_LandRT(rt_domain(did)%ch_lnkrt,rt_domain(did)%ch_lnkrt_sl,new_start_i,new_end_i,new_start_j,new_end_j,rt_domain(did)%LLINKID,rt_domain(did)%LNLINKSL,size(rt_domain(did)%CH_LNKRT,1))
+
+        block
+          type(hash_t) :: hash_table
+          integer :: val,ii,jj
+          logical :: found
+          
+          call hash_table%set_all_idx(rt_domain(did)%LLINKID, rt_domain(did)%LNLINKSL)
+          do jj = new_start_j, new_end_j
+             do ii = new_start_i, new_end_i
+                call hash_table%get(rt_domain(did)%CH_LNKRT(ii,jj), val, found)
+                if(found .eqv. .true.) then
+                   rt_domain(did)%CH_LNKRT_SL(ii,jj) = val
+                end if
+             end do
+          end do
+          call hash_table%clear()
+        end block
 
         call getLocalIndx(rt_domain(did)%gnlinksl,rt_domain(did)%LINKID, rt_domain(did)%LLINKID)
 
