@@ -33,7 +33,7 @@ module module_UDMAP
   use MODULE_mpp_ReachLS, only : updatelinkv, ReachLS_write_io, com_write1dInt, &
        com_decomp1dInt, pack_decomp_int, pack_decomp_real8
   use module_hydro_stop, only:HYDRO_stop
-
+  use hashtable
 #endif
 
   implicit none
@@ -64,14 +64,6 @@ integer :: ter_rt_flag
 real*8, allocatable, dimension(:) :: basns_area
 integer :: gnpid, lnsize
 integer, allocatable, dimension(:) :: bufi,bufj
-
-  interface
-     subroutine hash_UMDP(linkid,nlinksl,bufid_tmp,bufidflag,ix_bufid) bind(C, name="UMDP_C")
-       use iso_c_binding, only : c_int
-       integer(c_int) :: LINKID(*), bufid_tmp(*), bufidflag(*)
-       integer(c_int),value :: nlinksl,ix_bufid
-     end subroutine hash_UMDP
-  end interface
 
 contains
     subroutine UDMP_ini(nlinksl,ixrt,jxrt,rtmask, OVRTSWCRT, SUBRTSWCRT,cell_area)
@@ -187,7 +179,20 @@ contains
        ! 102       continue
        !        end do
 
-       call hash_UMDP(linkid,nlinksl,bufid_tmp,bufidflag,ix_bufid)
+       block
+         type(hash_t) :: hash_table
+         integer :: val,it
+         logical :: found
+         
+         call hash_table%set_all_idx(bufid_tmp, ix_bufid)
+         do it = 1, nlinksl
+            call hash_table%get(linkid(it), val, found)
+            if(found .eqv. .true.) then
+               bufidflag(val) = bufid_tmp(val)
+            end if
+         end do
+         call hash_table%clear()
+       end block
 
 #ifdef MPP_LAND
       call com_write1dInt(bufidflag,ix_bufid,gbufid,npid)
