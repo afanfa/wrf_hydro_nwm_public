@@ -888,9 +888,8 @@ MODULE MODULE_mpp_ReachLS
 !      mm = size(from,1)
        mm = l_nlinksl
 
-      kk = 0
       maxNum = 0
-
+      
       ! The following loops are replaced by a hashtable-based algorithm
       ! do m = 1, mm
       !    num = 0
@@ -903,33 +902,70 @@ MODULE MODULE_mpp_ReachLS
       !    if(num .gt. maxNum) maxNum = num
       ! end do
 
-      call hash_getToInd_maxNum(gto,gnlinksl,from,l_nlinksl,kk,maxNum)
+      block
+         type(hash_t) :: hash_table
+         integer :: val,it
+         integer, allocatable :: num_a(:)
+         logical :: found
 
-      allocate(ind(kk))
-      allocate(gToNodeOut(mm,maxNum+1))
-      gToNodeOut = -99
+         allocate(num_a(mm))
+         num_a = 0
+         kk = 0
+         
+         call hash_table%set_all_idx(from, mm)
+         do it=1, gnlinksl
+            call hash_table%get(gto(it), val, found)
+            if(found .eqv. .true.) then
+               kk = kk + 1
+               num_a(val) = num_a(val) + 1
+            end if
+         end do
+         maxNum = maxval(num_a)
+         num_a = 1
 
-      indLen = kk
+!         call hash_getToInd_maxNum(gto,gnlinksl,from,l_nlinksl,kk,maxNum)
 
-      kk = 0
+         allocate(ind(kk))
+         allocate(gToNodeOut(mm,maxNum+1))
+         gToNodeOut = -99
 
-      ! The following loops are replaced by a hashtable-based algorithm
-      ! do m = 1, mm
-      !    num = 1
-      !    do k = 1, gnlinksl
-      !        if(gto(k) .eq. from(m) ) then
-      !            kk = kk +1
-      !            !yw ind(kk) = gto(k)
-      !            ind(kk) = k
-      !            !! gToNodeOut(m,num+1) = gto(k)
-      !            gToNodeOut(m,num+1) = kk
-      !            gToNodeOut(m,1) = num
-      !            num = num + 1
-      !        endif
-      !     end do
-      ! end do 
+         indLen = kk
+         
+         kk = 0
 
-      call hash_getToInd_tonodeout(gto,gnlinksl,from,l_nlinksl,kk,ind,gToNodeOut)
+         ! The following loops are replaced by a hashtable-based algorithm
+         ! do m = 1, mm
+         !    num = 1
+         !    do k = 1, gnlinksl
+         !        if(gto(k) .eq. from(m) ) then
+         !            kk = kk +1
+         !            !yw ind(kk) = gto(k)
+         !            ind(kk) = k
+         !            !! gToNodeOut(m,num+1) = gto(k)
+         !            gToNodeOut(m,num+1) = kk
+         !            gToNodeOut(m,1) = num
+         !            num = num + 1
+         !        endif
+         !     end do
+         ! end do
+         
+         do it=1, gnlinksl
+            call hash_table%get(gto(it), val, found)
+            if(found .eqv. .true.) then
+               kk = kk + 1
+               ind(kk) = it
+               gToNodeOut(val,num_a(val)+1) = kk
+               gToNodeOut(val,1) = num_a(val)
+               num_a(val) = num_a(val) + 1
+            end if
+         end do
+
+         deallocate(num_a)
+         call hash_table%clear()
+
+    end block
+
+!      call hash_getToInd_tonodeout(gto,gnlinksl,from,l_nlinksl,kk,ind,gToNodeOut)
 
       ToInd(my_id+1) = kk
       do i = 0, numprocs - 1

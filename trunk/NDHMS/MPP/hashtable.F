@@ -67,26 +67,25 @@ module hashtable
 
 contains
 
-  pure function hash(this,key_value) result(bucket)
-    use iso_fortran_env, only : int64
+  function hash(this,key_value) result(bucket)
 
-    class(hash_t), intent(in) :: this
+    class(hash_t), intent(inout) :: this
     integer, intent(in) :: key_value
     integer :: bucket
 
-    bucket = modulo(key_value,this%bucket_count())
+    bucket = key_value
 
   end function hash
 
-  pure function bucket_count(this)
-    class(hash_t), intent(in) :: this
+  function bucket_count(this)
+    class(hash_t), intent(inout) :: this
     integer :: bucket_count
 
     bucket_count = this%n_buckets
   end function bucket_count
 
-  pure function n_collisions(this)
-    class(hash_t), intent(in) :: this
+  function n_collisions(this)
+    class(hash_t), intent(inout) :: this
     integer :: n_collisions
     integer :: i
 
@@ -96,8 +95,8 @@ contains
     enddo
   end function n_collisions
 
-  pure recursive function node_depth(this) result(depth)
-    class(node_type), intent(in) :: this
+  recursive function node_depth(this) result(depth)
+    class(node_type), intent(inout) :: this
     integer :: depth
 
     if (.not. associated(this%next)) then
@@ -123,23 +122,28 @@ contains
 
     bucket_id = modulo(this%hash(key), this%n_buckets) + 1
 
-    call this%buckets(bucket_id)%node_set(key, value, is_new)
+    call this%buckets(bucket_id)%node_set(key, value)
 
     if (is_new) this%n_keys = this%n_keys + 1
   end subroutine set
 
-  subroutine set_all_idx(this, keys)
+  subroutine set_all_idx(this, keys, length)
     class(hash_t), intent(inout) :: this
     integer, intent(in) :: keys(:)
+    integer, optional, intent(in) :: length
     integer :: bucket_id, i, n
 
-    n = size(keys)
-
+    if(present(length)) then
+       n = length
+    else
+       n = size(keys)
+    end if
+    
     this%n_buckets = n
     allocate(this%buckets(n))
 
     do i = 1, n
-       bucket_id = modulo(this%hash(keys(i)), this%n_buckets) + 1
+       bucket_id = modulo(this%hash(keys(i)),this%n_buckets) + 1
        call this%buckets(bucket_id)%node_set(keys(i), i)
        this%n_keys = this%n_keys + 1
     end do
@@ -163,23 +167,23 @@ contains
     end do
   end subroutine set_all
 
-  recursive subroutine node_set(this, key, value, is_new)
+  recursive subroutine node_set(this, key, value)
     class(node_type), intent(inout) :: this
     integer, intent(in) :: key
     integer, intent(in) :: value
-    logical, optional, intent(out) :: is_new
 
     if (.not. allocated(this%kv)) then
        allocate(this%kv)
        this%kv%key = key
        this%kv%value = value
-       if (present(is_new)) is_new = .true.
+       this%next => null()
     else if (this%kv%key == key) then
-       this%kv%value = value
-       if (present(is_new)) is_new = .false.
+       this%kv%value = this%kv%value
     else
-       if (.not. associated(this%next)) allocate(this%next)
-       call this%next%node_set(key, value, is_new)
+       if (.not. associated(this%next)) then
+          allocate(this%next)
+       end if
+       call this%next%node_set(key, value)
     endif
   end subroutine node_set
 
@@ -187,10 +191,11 @@ contains
     class(hash_t), intent(inout) :: this
     integer, intent(in) :: key
     integer, intent(out) :: value
-    logical, optional, intent(out) :: success
+    logical, intent(out) :: success
     integer :: bucket_id
 
-    bucket_id = modulo(this%hash(key), this%n_buckets) + 1
+    success = .false.
+    bucket_id = modulo(key,this%n_buckets) + 1
     call this%buckets(bucket_id)%node_get(key, value, success)
   end subroutine get
 
@@ -198,18 +203,20 @@ contains
     class(node_type), intent(inout) :: this
     integer, intent(in) :: key
     integer, intent(out) :: value
-    logical, optional, intent(out) :: success
+    logical, intent(out) :: success
+
+    success = .false.
 
     if (.not. allocated(this%kv)) then
        ! Not found. (Initial node in the bucket not set)
-       if (present(success)) success = .false.
+       success = .false.
     else if (this%kv%key == key) then
        value = this%kv%value
-       if (present(success)) success = .true.
+       success = .true.
     else if (associated(this%next)) then
        call this%next%node_get(key, value, success)
     else
-       if (present(success)) success = .false.
+       success = .false.
     endif
   end subroutine node_get
 
@@ -278,6 +285,7 @@ contains
        if (associated(this%buckets(i)%next)) then 
           call this%buckets(i)%next%node_clear()
           deallocate(this%buckets(i)%next)
+          deallocate(this%buckets(i)%kv)
        endif
     enddo
     deallocate(this%buckets)
@@ -291,6 +299,7 @@ contains
     if (associated(this%next)) then
        call this%next%node_clear()
        deallocate(this%next)
+       deallocate(this%kv)
        nullify(this%next)
     endif
   end subroutine node_clear
