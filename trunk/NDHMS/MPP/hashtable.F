@@ -29,8 +29,6 @@ module hashtable
      ! If key is present and the node is another member of the linked list, link the 
      !   previous node's next node to this node's next node, deallocate this node, 
      !   return success
-     ! Otherwise, fail and return 0
-     procedure :: node_remove
 
      ! Deallocate kv is allocated.
      ! Call the clear method of the next node if the next pointer associated.
@@ -57,8 +55,6 @@ module hashtable
      procedure, public :: set_all_idx
      ! Get the value at the given key.
      procedure, public :: get
-     ! Remove the value with the given key.
-     procedure, public :: remove
      ! Clear all the allocated memory (must be called to prevent memory leak).
      procedure, public :: clear
      ! Private hashing function
@@ -176,7 +172,6 @@ contains
        allocate(this%kv)
        this%kv%key = key
        this%kv%value = value
-       this%next => null()
     else if (this%kv%key == key) then
        this%kv%value = this%kv%value
     else
@@ -220,61 +215,6 @@ contains
     endif
   end subroutine node_get
 
-  subroutine remove(this, key, success)
-    class(hash_t), intent(inout) :: this
-    integer, intent(in) :: key
-    logical, optional, intent(out) :: success
-
-    integer :: bucket_id
-    type(node_type)  ::  first
-    logical ::  locSuccess
-
-    bucket_id = modulo(this%hash(key), this%n_buckets) + 1
-    first = this%buckets(bucket_id)
-
-    if (allocated(first%kv)) then
-       if (first%kv%key == key) then
-          if (associated(first%next)) then
-             this%buckets(bucket_id)%kv%key =  this%buckets(bucket_id)%next%kv%key
-             this%buckets(bucket_id)%kv%value = this%buckets(bucket_id)%next%kv%value
-             deallocate(first%next%kv)
-             this%buckets(bucket_id)%next => this%buckets(bucket_id)%next%next 
-          else
-             deallocate(this%buckets(bucket_id)%kv)
-          endif
-          locSuccess = .true.
-       else
-          call node_remove(first%next, key, locSuccess, first)
-       end if
-    else
-       locSuccess = .false.      
-    endif
-
-    if (locSuccess) this%n_keys = this%n_keys - 1
-    if (present(success)) success = locSuccess
-
-  end subroutine remove
-
-  recursive subroutine node_remove(this, key, success, last)
-    class(node_type), intent(inout) :: this, last
-    integer, intent(in) :: key
-    logical, intent(out) :: success
-
-    if (.not. allocated(this%kv)) then
-       ! Not found. (Initial node in the bucket not set)
-       success = .false.
-    else if (this%kv%key == key) then
-       last%next => this%next
-       nullify(this%next)
-       deallocate(this%kv)
-       success = .true.
-    else if (associated(this%next)) then
-       call this%next%node_remove(key, success, this)
-    else
-       success = .false.
-    endif
-  end subroutine node_remove
-
   subroutine clear(this)
     class(hash_t), intent(inout) :: this
     integer :: i
@@ -285,8 +225,10 @@ contains
        if (associated(this%buckets(i)%next)) then 
           call this%buckets(i)%next%node_clear()
           deallocate(this%buckets(i)%next)
-          deallocate(this%buckets(i)%kv)
-       endif
+          if(allocated(this%buckets(i)%kv)) then
+             deallocate(this%buckets(i)%kv)
+          endif
+       end if
     enddo
     deallocate(this%buckets)
     this%n_keys = 0

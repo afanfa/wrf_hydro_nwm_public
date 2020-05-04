@@ -48,65 +48,6 @@ module module_HYDRO_io
       module procedure read_rst_crt_reach_nc_real8
    end interface
 
-  interface
-     subroutine hash_readBucket_nhd(tmpLinkid,gnid,LINKID,numbasns,&
-          nhdBuckMask, gw_buck_coeff, gw_buck_exp, gw_buck_loss,&
-          tmpCoeff, tmpExp, tmpLoss, z_max, z_init, &
-          tmpz_max, tmpz_init, bucket_loss) bind(C, name="readBucket_nhd_C")
-
-       use iso_c_binding, only : c_int, c_float
-
-       integer(c_int) :: tmpLinkid(*), LINKID(*), nhdBuckMask(*)
-       real(c_float) :: gw_buck_coeff(*), gw_buck_exp(*), gw_buck_loss(*)
-       real(c_float) :: tmpCoeff(*), tmpExp(*), tmpLoss(*)
-       real(c_float) :: z_max(*), z_init(*), tmpz_max(*), tmpz_init(*)
-       integer(c_int),value :: gnid, numbasns, bucket_loss
-
-     end subroutine hash_readBucket_nhd
-  end interface
-
-  interface
-     subroutine hash_nhdLakeMap_mpp_maxNum(gto,gnlinksl,linkid,nlinksl,kk,maxNum) &
-          bind(C, name="nhdLakeMap_mpp_maxNum_C")
-
-       use iso_c_binding, only : c_int
-
-       integer(c_int) :: gto(*), LINKID(*)
-       integer(c_int) :: kk, maxNum
-       integer(c_int),value :: gnlinksl, nlinksl
-
-     end subroutine hash_nhdLakeMap_mpp_maxNum
-  end interface
-
-  interface
-     subroutine hash_nhdLakeMap_scan_mpp_maxNum(gto,gnlinksl,linkid,nlinksl,gtoLakeId_g,&
-          lakeida,kk,maxNum) &
-          bind(C, name="nhdLakeMap_scan_mpp_maxNum_C")
-
-       use iso_c_binding, only : c_int
-
-       integer(c_int) :: gto(*), LINKID(*), gtoLakeId_g(*), lakeida(*)
-       integer(c_int) :: kk, maxNum
-       integer(c_int),value :: gnlinksl, nlinksl
-
-     end subroutine hash_nhdLakeMap_scan_mpp_maxNum
-  end interface
-
-  interface
-     subroutine hash_nhdLakeMap_mpp_tonodeout(gto,gnlinksl,linkid,nlinksl,kk,&
-          ind,tmpTo_Node,gToNodeOut) &
-          bind(C, name="nhdLakeMap_mpp_tonodeout_C")
-
-       use iso_c_binding, only : c_int
-
-       integer(c_int) :: gto(*), LINKID(*), ind(*), tmpTo_Node(*), gToNodeOut(*)
-       integer(c_int) :: kk
-       integer(c_int),value :: gnlinksl, nlinksl
-
-     end subroutine hash_nhdLakeMap_mpp_tonodeout
-  end interface
-
-
    integer, parameter :: did=1
    integer :: logUnit
 
@@ -9307,33 +9248,29 @@ subroutine readBucket_nhd(infile, numbasns, gw_buck_coeff, gw_buck_exp, &
        ! 301     continue
        !     end do
 
-       ! block
-       !   type(hash_t) :: hash_table
-       !   integer :: val,it
-       !   logical :: found
+       block
+         type(hash_t) :: hash_table
+         integer :: val,it
+         logical :: found
          
-       !   call hash_table%set_all_idx(LINKID,numbasns)
-       !   do it=1, gnid
-       !      call hash_table%get(tmpLinkid(it), val, found)
-       !      if(found .eqv. .true. .and. nhdBuckMask(val) == -999) then
-       !         gw_buck_coeff(val) = tmpCoeff(it)
-       !         gw_buck_exp(val) = tmpExp(it)
-       !         if(nlst(did)%bucket_loss == 1) then
-       !            gw_buck_loss(val) = tmpLoss(it)
-       !         end if
-       !         z_max(val) = tmpz_max(it)
-       !         z_init(val) = tmpz_init(it)
-       !         nhdBuckMask(val) = 1
-       !         call hash_table%remove_first(tmpLinkid(it))
-       !      end if
-       !   end do
-       !   call hash_table%clear()
-       ! end block
-
-       call hash_readBucket_nhd(tmpLinkid,gnid,LINKID,numbasns,&
-           nhdBuckMask, gw_buck_coeff, gw_buck_exp, gw_buck_loss,&
-           tmpCoeff, tmpExp, tmpLoss, z_max, z_init, &
-           tmpz_max, tmpz_init, nlst(did)%bucket_loss) 
+         call hash_table%set_all_idx(LINKID,numbasns)
+         do it=1, gnid
+            call hash_table%get(tmpLinkid(it), val, found)
+            if((found .eqv. .true.)) then
+               if((nhdBuckMask(val) == -999)) then
+                  gw_buck_coeff(val) = tmpCoeff(it)
+                  gw_buck_exp(val) = tmpExp(it)
+                  if(nlst(did)%bucket_loss == 1) then
+                     gw_buck_loss(val) = tmpLoss(it)
+                  end if
+                  z_max(val) = tmpz_max(it)
+                  z_init(val) = tmpz_init(it)
+                  nhdBuckMask(val) = 1
+               end if
+            end if
+         end do
+         call hash_table%clear()
+       end block
 
     if(allocated(tmpCoeff)) deallocate(tmpCoeff)
     if(allocated(tmpExp)) deallocate(tmpExp)
