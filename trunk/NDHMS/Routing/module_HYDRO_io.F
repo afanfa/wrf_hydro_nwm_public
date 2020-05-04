@@ -9304,12 +9304,34 @@ subroutine readBucket_nhd(infile, numbasns, gw_buck_coeff, gw_buck_exp, &
        !             endif
        !         end do
        ! 301     continue
-       !     end do 
+       !     end do
 
-       call hash_readBucket_nhd(tmpLinkid,gnid,LINKID,numbasns,&
-            nhdBuckMask, gw_buck_coeff, gw_buck_exp, gw_buck_loss,&
-            tmpCoeff, tmpExp, tmpLoss, z_max, z_init, &
-            tmpz_max, tmpz_init, nlst(did)%bucket_loss) 
+       block
+         type(hash_t) :: hash_table
+         integer :: val,it
+         logical :: found
+         
+         call hash_table%set_all_idx(LINKID,numbasns)
+         do it=1, gnid
+            call hash_table%get(tmpLinkid(it), val, found)
+            if(found .eqv. .true. .and. nhdBuckMask(val) == -999) then
+               gw_buck_coeff(val) = tmpCoeff(it)
+               gw_buck_exp(val) = tmpExp(it)
+               if(bucket_loss == 1) then
+                  gw_buck_loss(val) = tmpLoss(it)
+               end if
+               z_max(val) = tmpz_max(it)
+               z_init(val) = tmpz_init(it)
+               nhdBuckMask(val) = 1
+            end if
+         end do
+         call hash_table%clear()
+       end block
+
+       !call hash_readBucket_nhd(tmpLinkid,gnid,LINKID,numbasns,&
+       !     nhdBuckMask, gw_buck_coeff, gw_buck_exp, gw_buck_loss,&
+       !     tmpCoeff, tmpExp, tmpLoss, z_max, z_init, &
+       !     tmpz_max, tmpz_init, nlst(did)%bucket_loss) 
 
     if(allocated(tmpCoeff)) deallocate(tmpCoeff)
     if(allocated(tmpExp)) deallocate(tmpExp)
