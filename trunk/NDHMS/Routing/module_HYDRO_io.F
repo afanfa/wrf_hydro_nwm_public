@@ -34,6 +34,7 @@ module module_HYDRO_io
    use module_reservoir_utilities, only: read_reservoir_type
    use netcdf
    use module_hydro_stop, only:HYDRO_stop
+   use hashtable
 
    implicit none
 
@@ -9306,32 +9307,33 @@ subroutine readBucket_nhd(infile, numbasns, gw_buck_coeff, gw_buck_exp, &
        ! 301     continue
        !     end do
 
-       block
-         type(hash_t) :: hash_table
-         integer :: val,it
-         logical :: found
+       ! block
+       !   type(hash_t) :: hash_table
+       !   integer :: val,it
+       !   logical :: found
          
-         call hash_table%set_all_idx(LINKID,numbasns)
-         do it=1, gnid
-            call hash_table%get(tmpLinkid(it), val, found)
-            if(found .eqv. .true. .and. nhdBuckMask(val) == -999) then
-               gw_buck_coeff(val) = tmpCoeff(it)
-               gw_buck_exp(val) = tmpExp(it)
-               if(bucket_loss == 1) then
-                  gw_buck_loss(val) = tmpLoss(it)
-               end if
-               z_max(val) = tmpz_max(it)
-               z_init(val) = tmpz_init(it)
-               nhdBuckMask(val) = 1
-            end if
-         end do
-         call hash_table%clear()
-       end block
+       !   call hash_table%set_all_idx(LINKID,numbasns)
+       !   do it=1, gnid
+       !      call hash_table%get(tmpLinkid(it), val, found)
+       !      if(found .eqv. .true. .and. nhdBuckMask(val) == -999) then
+       !         gw_buck_coeff(val) = tmpCoeff(it)
+       !         gw_buck_exp(val) = tmpExp(it)
+       !         if(nlst(did)%bucket_loss == 1) then
+       !            gw_buck_loss(val) = tmpLoss(it)
+       !         end if
+       !         z_max(val) = tmpz_max(it)
+       !         z_init(val) = tmpz_init(it)
+       !         nhdBuckMask(val) = 1
+       !         call hash_table%remove_first(tmpLinkid(it))
+       !      end if
+       !   end do
+       !   call hash_table%clear()
+       ! end block
 
-       !call hash_readBucket_nhd(tmpLinkid,gnid,LINKID,numbasns,&
-       !     nhdBuckMask, gw_buck_coeff, gw_buck_exp, gw_buck_loss,&
-       !     tmpCoeff, tmpExp, tmpLoss, z_max, z_init, &
-       !     tmpz_max, tmpz_init, nlst(did)%bucket_loss) 
+       call hash_readBucket_nhd(tmpLinkid,gnid,LINKID,numbasns,&
+           nhdBuckMask, gw_buck_coeff, gw_buck_exp, gw_buck_loss,&
+           tmpCoeff, tmpExp, tmpLoss, z_max, z_init, &
+           tmpz_max, tmpz_init, nlst(did)%bucket_loss) 
 
     if(allocated(tmpCoeff)) deallocate(tmpCoeff)
     if(allocated(tmpExp)) deallocate(tmpExp)
@@ -10373,45 +10375,83 @@ end subroutine output_chrt2
       !       if(num .gt. maxNum) maxNum = num
       ! end do
 
-      call hash_nhdLakeMap_mpp_maxNum(gto,gnlinksl,linkid,nlinksl,kk,maxNum)
+      ! call hash_nhdLakeMap_mpp_maxNum(gto,gnlinksl,linkid,nlinksl,kk,maxNum)
 
-      allocate(ind(kk))
-      allocate(gToNodeOut(NLINKSL,maxNum+1))
-      gToNodeOut = -99
-      allocate(tmpTYPEL(kk))
-      allocate(tmpLINKID(kk))
-      allocate(tmpLAKEIDA(kk))
-      allocate(tmpOUTLAKEID(kk))
-      allocate(tmpTO_NODE(kk))
 
-      if(kk .gt. 0) then
-         tmpOUTLAKEID = -999
-         tmpTYPEL = -999
-         tmpTO_NODE = -999
-      endif
-      if(NLINKSL .gt. 0) then
-         OUTLAKEID = -999
-         TYPEL = -999
-      endif
-
-      kk = 0
-
-      ! The following loops are replaced by a hashtable-based algorithm
-      ! do m = 1, NLINKSL
-      !          num = 1
-      !          do k = 1, gnlinksl
-      !              if(gto(k) .eq. LINKID(m) ) then
-      !                  kk = kk +1
-      !                  ind(kk) = k
-      !                  tmpTO_NODE(kk) = gto(k)
-      !                  gToNodeOut(m,num+1) = kk
-      !                  gToNodeOut(m,1) = num
-      !                  num = num + 1
-      !              endif
-      !           end do
-      ! enddo
-
-      call hash_nhdLakeMap_mpp_tonodeout(gto,gnlinksl,linkid,nlinksl,kk,ind,tmpTo_Node,gToNodeOut)
+      block
+        type(hash_t) :: hash_table
+        integer :: val,it
+        integer, allocatable :: num_a(:)
+        logical :: found
+        
+        allocate(num_a(NLINKSL))
+        num_a = 0
+        kk = 0
+        
+        call hash_table%set_all_idx(linkid, NLINKSL)
+        do it=1, gnlinksl
+           call hash_table%get(gto(it), val, found)
+           if(found .eqv. .true.) then
+              kk = kk + 1
+              num_a(val) = num_a(val) + 1
+           end if
+        end do
+        maxNum = maxval(num_a)
+        num_a = 1
+      
+        allocate(ind(kk))
+        allocate(gToNodeOut(NLINKSL,maxNum+1))
+        gToNodeOut = -99
+        allocate(tmpTYPEL(kk))
+        allocate(tmpLINKID(kk))
+        allocate(tmpLAKEIDA(kk))
+        allocate(tmpOUTLAKEID(kk))
+        allocate(tmpTO_NODE(kk))
+        
+        if(kk .gt. 0) then
+           tmpOUTLAKEID = -999
+           tmpTYPEL = -999
+           tmpTO_NODE = -999
+        endif
+        if(NLINKSL .gt. 0) then
+           OUTLAKEID = -999
+           TYPEL = -999
+        endif
+        
+        kk = 0
+        ! The following loops are replaced by a hashtable-based algorithm
+        ! do m = 1, NLINKSL
+        !          num = 1
+        !          do k = 1, gnlinksl
+        !              if(gto(k) .eq. LINKID(m) ) then
+        !                  kk = kk +1
+        !                  ind(kk) = k
+        !                  tmpTO_NODE(kk) = gto(k)
+        !                  gToNodeOut(m,num+1) = kk
+        !                  gToNodeOut(m,1) = num
+        !                  num = num + 1
+        !              endif
+        !           end do
+        ! enddo
+        
+        !      call hash_nhdLakeMap_mpp_tonodeout(gto,gnlinksl,linkid,nlinksl,kk,ind,tmpTo_Node,gToNodeOut)
+        
+        do it=1, gnlinksl
+           call hash_table%get(gto(it), val, found)
+           if(found .eqv. .true.) then
+              kk = kk + 1
+              ind(kk) = it
+              tmpTO_NODE(kk) = gto(it)
+              gToNodeOut(val,num_a(val)+1) = kk
+              gToNodeOut(val,1) = num_a(val)
+              num_a(val) = num_a(val) + 1
+           end if
+        end do
+        
+        deallocate(num_a)
+        call hash_table%clear()
+        
+      end block
 
       size2 = kk
       deallocate (gto)
@@ -10632,8 +10672,30 @@ end subroutine output_chrt2
       !    if(num .gt. maxNum) maxNum = num
       ! end do
 
-      call hash_nhdLakeMap_scan_mpp_maxNum(gto,gnlinksl,linkid,nlinksl,gtoLakeId_g,&
-           lakeida,kk,maxNum)
+        block
+         type(hash_t) :: hash_table
+         integer :: val,it
+         integer, allocatable :: num_a(:)
+         logical :: found
+
+         allocate(num_a(NLINKSL))
+         num_a = 0
+         kk = 0
+         
+         call hash_table%set_all_idx(linkid, NLINKSL)
+         do it=1, gnlinksl
+            call hash_table%get(gto(it), val, found)
+            if(found .eqv. .true.) then
+               gtoLakeId_g(it) = lakeida(val)
+               kk = kk + 1
+               num_a(val) = num_a(val) + 1
+            end if
+         end do
+         maxNum = maxval(num_a)
+         num_a = 1
+
+!      call hash_nhdLakeMap_scan_mpp_maxNum(gto,gnlinksl,linkid,nlinksl,gtoLakeId_g,&
+!           lakeida,kk,maxNum)
 
       allocate(ind(kk))
       allocate(gToNodeOut(NLINKSL,maxNum+1))
@@ -10658,7 +10720,24 @@ end subroutine output_chrt2
       !    end do
       ! end do
 
-      call hash_nhdLakeMap_mpp_tonodeout(gto,gnlinksl,linkid,nlinksl,kk,ind,tmpTo_Node,gToNodeOut)
+      do it=1, gnlinksl
+         call hash_table%get(gto(it), val, found)
+         if(found .eqv. .true.) then
+            kk = kk + 1
+            ind(kk) = it
+            tmpTO_NODE(kk) = gto(it)
+            gToNodeOut(val,num_a(val)+1) = kk
+            gToNodeOut(val,1) = num_a(val)
+            num_a(val) = num_a(val) + 1
+         end if
+      end do
+      
+      deallocate(num_a)
+      call hash_table%clear()
+
+    end block
+
+!      call hash_nhdLakeMap_mpp_tonodeout(gto,gnlinksl,linkid,nlinksl,kk,ind,tmpTo_Node,gToNodeOut)
 
       size = kk
       if(allocated(gto)) deallocate (gto)
