@@ -60,47 +60,6 @@ MODULE MODULE_mpp_ReachLS
      module procedure updateLinkV4_mem
   end interface
 
-  interface
-     subroutine hash_getLocalIndx(gLinkId,glinksl,LLINKID,LLINKIDINDX,LLINKLEN) bind(C, name="getLocalIndx_C")
-
-       use iso_c_binding, only : c_int
-
-       integer(c_int) :: gLinkId(*), LLINKID(*)
-       
-       integer(c_int) :: LLINKIDINDX(*) !OUTPUT
-       
-       integer(c_int),value :: glinksl,LLINKLEN
-
-     end subroutine hash_getLocalIndx
-  end interface
-
-  interface
-     subroutine hash_getToInd_maxNum(gto,gnlinksl,linkid,nlinksl,kk,maxNum) &
-          bind(C, name="nhdLakeMap_mpp_maxNum_C")
-
-       use iso_c_binding, only : c_int
-
-       integer(c_int) :: gto(*), LINKID(*)
-       integer(c_int) :: kk, maxNum
-       integer(c_int),value :: gnlinksl, nlinksl
-
-     end subroutine hash_getToInd_maxNum
-  end interface
-
-  interface
-     subroutine hash_getToInd_tonodeout(gto,gnlinksl,linkid,nlinksl,kk,&
-          ind,gToNodeOut) &
-          bind(C, name="nhdLakeMap_mpp_tonodeout_light_C")
-
-       use iso_c_binding, only : c_int
-
-       integer(c_int) :: gto(*), LINKID(*), ind(*), gToNodeOut(*)
-       integer(c_int) :: kk
-       integer(c_int),value :: gnlinksl, nlinksl
-
-     end subroutine hash_getToInd_tonodeout
-  end interface
-
   include "mpif.h"
 
   integer,allocatable,dimension(:) :: sDataRec  ! sending data size
@@ -412,7 +371,7 @@ MODULE MODULE_mpp_ReachLS
          integer :: val,it
          logical :: found
          
-         call hash_table%set_all_idx(LLINKID)
+         call hash_table%set_all_idx(LLINKID,LLINKLEN)
          do it=1, glinksl
             call hash_table%get(gLinkId(it), val, found)
             if(found .eqv. .true.) then
@@ -421,8 +380,6 @@ MODULE MODULE_mpp_ReachLS
          end do
          call hash_table%clear()
        end block
-
-!       call hash_getLocalIndx(gLinkId,glinksl,LLINKID,LLINKIDINDX,LLINKLEN)
 
        call mpp_land_sync()
   end subroutine getLocalIndx
@@ -923,8 +880,6 @@ MODULE MODULE_mpp_ReachLS
          maxNum = maxval(num_a)
          num_a = 1
 
-!         call hash_getToInd_maxNum(gto,gnlinksl,from,l_nlinksl,kk,maxNum)
-
          allocate(ind(kk))
          allocate(gToNodeOut(mm,maxNum+1))
          gToNodeOut = -99
@@ -964,8 +919,6 @@ MODULE MODULE_mpp_ReachLS
          call hash_table%clear()
 
     end block
-
-!      call hash_getToInd_tonodeout(gto,gnlinksl,from,l_nlinksl,kk,ind,gToNodeOut)
 
       ToInd(my_id+1) = kk
       do i = 0, numprocs - 1
