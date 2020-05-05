@@ -496,7 +496,8 @@ SUBROUTINE ROUTE_OVERLAND1(dt,                                &
     DH_tmp=0.
     QBDRY_tmp =0.
 
-    !!! Loop to route water
+!!! Loop to route water
+    !$omp parallel do firstprivate(i,index,tmp_gsize,sfx,hmax,IXX0,JYY0,alfax,hh,hh53,qqsfc,tmp_adjust)
     do j=2,YY-1
         do i=2,XX-1
             if (h(I,J).GT.retent_dep(I,J)) then
@@ -577,16 +578,18 @@ SUBROUTINE ROUTE_OVERLAND1(dt,                                &
                                 .or.(JYY0.eq.YY )) then
                             !QBDRY(IXX0,JYY0)=QBDRY(IXX0,JYY0) - qqsfc*1000.
 #endif
-                            QBDRY_tmp(IXX0,JYY0)=QBDRY_tmp(IXX0,JYY0) - qqsfc*1000.
-                            QBDRYT=QBDRYT - qqsfc
-                            DH_tmp(IXX0,JYY0)= DH_tmp(IXX0,JYY0)-tmp_adjust
+                           !$omp critical
+                           QBDRY_tmp(IXX0,JYY0)=QBDRY_tmp(IXX0,JYY0) - qqsfc*1000.
+                           QBDRYT=QBDRYT - qqsfc
+                           DH_tmp(IXX0,JYY0)= DH_tmp(IXX0,JYY0)-tmp_adjust
+                           !$omp end critical
                         end if
                     end if
                     !! End loop to route sfc water
                 end if
         end do
     end do
-
+    !$omp end parallel do
 #ifdef MPP_LAND
     ! use double precision to solve the underflow problem.
     call MPP_LAND_COM_REAL8(DH_tmp,XX,YY,1)
