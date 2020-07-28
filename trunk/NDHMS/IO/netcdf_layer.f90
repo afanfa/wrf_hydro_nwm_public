@@ -16,7 +16,7 @@ module netcdf_layer_base
    contains
      procedure, pass(self) :: create_file => create_file_parallel
      procedure, pass(self) :: open_file => open_file_parallel
-     procedure, pass(self) :: set_communicator
+     procedure, pass(self) :: set_comm
   end type NetCDF_parallel_
 
 contains
@@ -71,12 +71,12 @@ contains
 
   end function open_file_parallel
 
-  subroutine set_communicator(self,mpi_comm)
+  subroutine set_comm(self,mpi_comm)
     class(NetCDF_parallel_), intent(inout) :: self
     integer, intent(in) :: mpi_comm
 
     self%MPI_COMMUNICATOR = mpi_comm
 
-  end subroutine set_communicator
+  end subroutine set_comm
 
 end module netcdf_layer_base

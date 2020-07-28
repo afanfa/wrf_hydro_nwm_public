@@ -7,6 +7,7 @@ module io_manager_base
      type(NetCDF_serial_),allocatable :: netcdf_serial
      type(NetCDF_parallel_),allocatable :: netcdf_parallel
    contains
+     procedure, pass(self) :: set_communicator
   end type IOManager_
 
   interface IOManager_
@@ -22,5 +23,15 @@ contains
     allocate(IOManager_init%netcdf_parallel)
     
   end function IOManager_init
+
+  subroutine set_communicator(self,comm)
+    implicit none
+
+    class(IOManager_) :: self
+    integer :: comm
+
+    call self%netcdf_parallel%set_comm(comm)
+
+  end subroutine set_communicator
   
 end module io_manager_base
