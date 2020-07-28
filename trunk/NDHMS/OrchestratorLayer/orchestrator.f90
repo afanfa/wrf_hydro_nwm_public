@@ -1,5 +1,5 @@
 module orchestrator_base
-  use io_manager_base
+  use io_manager_base, only : IOManager_
   use config_base
   implicit none
 

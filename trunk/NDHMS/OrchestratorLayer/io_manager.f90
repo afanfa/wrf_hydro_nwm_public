@@ -4,7 +4,8 @@ module io_manager_base
   
   type :: IOManager_
      logical :: parallel = .false.
-     class(NetCDF_layer_),allocatable :: netcdf_layer
+     type(NetCDF_serial_),allocatable :: netcdf_serial
+     type(NetCDF_parallel_),allocatable :: netcdf_parallel
    contains
   end type IOManager_
 
@@ -14,22 +15,11 @@ module io_manager_base
     
 contains
 
-  type(IOManager_) function IOManager_init(parallel)
+  type(IOManager_) function IOManager_init()
     implicit none
 
-    logical, optional, intent(in) :: parallel
-
-    if(.not.present(parallel)) then
-       IOManager_init%parallel = .false.
-    else
-       IOManager_init%parallel = parallel
-    end if
-
-    if( IOManager_init%parallel .eqv. .false.) then
-       allocate(NetCDF_serial_ :: IOManager_init%netcdf_layer)
-    else
-       allocate(NetCDF_parallel_ :: IOManager_init%netcdf_layer)
-    end if
+    allocate(IOManager_init%netcdf_serial)
+    allocate(IOManager_init%netcdf_parallel)
     
   end function IOManager_init
   

@@ -169,7 +169,7 @@ echo
 printf "\e[7;49;94mModule information\e[0m\n"
 module purge
 # Is this strict enough in the sense that things might be changing?
-module load  $compiler_module  $mpi  ncarcompilers  netcdf  ncarenv nccmp || exit 4
+module load  $compiler_module  $mpi  ncarcompilers  netcdf  ncarenv nccmp pnetcdf || exit 4
 module list
 
 #-------------------------------------------------------

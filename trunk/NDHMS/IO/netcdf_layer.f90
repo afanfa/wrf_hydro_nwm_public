@@ -1,58 +1,28 @@
 module netcdf_layer_base
   use netcdf
+  use pnetcdf
   implicit none
   include "mpif.h"
   
-  type, abstract :: NetCDF_layer_
-     procedure (nf90_open), pointer, nopass :: open_file => nf90_open
-     procedure (nf90_def_dim), pointer, nopass :: def_dim => nf90_def_dim
-     procedure (nf90_inq_varid), pointer, nopass :: inq_varid => nf90_inq_varid
-     procedure (nf90_close), pointer, nopass :: close_file => nf90_close
-
-     procedure (integer), pointer, nopass :: put_var => nf_put_var
-     procedure (integer), pointer, nopass :: get_var => nf_get_var
-     procedure (integer), pointer, nopass :: put_att => nf_put_att
-     procedure (integer), pointer, nopass :: def_var => nf_def_var
+  type :: NetCDF_serial_
    contains
-     procedure (create_file_signature), pass(object), deferred :: create_file
-  end type NetCDF_layer_
-
-  integer, external :: nf_put_att
-  integer, external :: nf_def_var
-  integer, external :: nf_put_var
-  integer, external :: nf_get_var
-
-  abstract interface
-
-     function create_file_signature(object, path, cmode, initialsize, chunksize, ncid) result(res)
-       import NetCDF_layer_
-       class(NetCDF_layer_), intent(in   ) :: object
-       character (len = *), intent(in   ) :: path
-       integer,             intent(in   ) :: cmode
-       integer, optional,   intent(in   ) :: initialsize
-       integer, optional,   intent(inout) :: chunksize
-       integer,             intent(  out) :: ncid
-       integer                            :: res
-     end function create_file_signature
-     
-  end interface
-
-  type, extends(NetCDF_layer_) :: NetCDF_serial_
-   contains
-     procedure, pass(object) :: create_file => create_file_serial
+     procedure, pass(self) :: create_file => create_file_serial
+     procedure, pass(self) :: open_file => open_file_serial
   end type NetCDF_serial_
 
-  type, extends(NetCDF_layer_) :: NetCDF_parallel_
+  type :: NetCDF_parallel_
      integer :: MPI_communicator
      integer :: default_info = MPI_INFO_NULL
    contains
-     procedure, pass(object) :: create_file => create_file_parallel
+     procedure, pass(self) :: create_file => create_file_parallel
+     procedure, pass(self) :: open_file => open_file_parallel
+     procedure, pass(self) :: set_communicator
   end type NetCDF_parallel_
 
 contains
 
-  function create_file_serial (object, path, cmode, initialsize, chunksize, ncid) result(res)
-    class(NetCDF_serial_),  intent(in) :: object
+  function create_file_serial (self, path, cmode, initialsize, chunksize, ncid) result(res)
+    class(NetCDF_serial_),  intent(in) :: self
     character (len = *), intent(in   ) :: path
     integer,             intent(in   ) :: cmode
     integer, optional,   intent(in   ) :: initialsize
@@ -63,9 +33,21 @@ contains
     res = nf90_create(path = path, cmode = cmode, ncid = ncid)
     
   end function create_file_serial
+
+  function open_file_serial (self, path, mode, ncid) result(res)
+    implicit none
+    class(NetCDF_serial_),  intent(in) :: self
+    character (len = *), intent(in) :: path
+    integer, intent(in) :: mode
+    integer, intent(out) :: ncid
+    integer :: res
+
+    res = nf90_open(path, mode, ncid)
+
+  end function open_file_serial
   
-  function create_file_parallel(object, path, cmode, initialsize, chunksize, ncid) result(res)
-    class(NetCDF_parallel_),intent(in) :: object
+  function create_file_parallel(self, path, cmode, initialsize, chunksize, ncid) result(res)
+    class(NetCDF_parallel_),intent(in) :: self
     character (len = *), intent(in   ) :: path
     integer,             intent(in   ) :: cmode
     integer, optional,   intent(in   ) :: initialsize
@@ -73,9 +55,28 @@ contains
     integer,             intent(  out) :: ncid
     integer                            :: res
     
-    res = nf90_create(path = path, cmode = cmode, ncid = ncid, &
-         &  comm = object%mpi_communicator, info = object%default_info)
-    
+    res = nf90mpi_create(self%MPI_COMMUNICATOR, path, cmode, self%default_info, ncid)
+ 
   end function create_file_parallel
+
+  function open_file_parallel (self, path, mode, ncid) result(res)
+    implicit none
+    class(NetCDF_parallel_),  intent(in) :: self
+    character (len = *), intent(in   ) :: path
+    integer, intent(in) :: mode
+    integer, intent(out) :: ncid
+    integer :: res
+
+    res = nf90mpi_open(self%MPI_COMMUNICATOR, path, mode, self%default_info, ncid)
+
+  end function open_file_parallel
+
+  subroutine set_communicator(self,mpi_comm)
+    class(NetCDF_parallel_), intent(inout) :: self
+    integer, intent(in) :: mpi_comm
+
+    self%MPI_COMMUNICATOR = mpi_comm
+
+  end subroutine set_communicator
 
 end module netcdf_layer_base
