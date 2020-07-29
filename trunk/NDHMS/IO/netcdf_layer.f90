@@ -12,7 +12,7 @@ module netcdf_layer_base
 
   type :: NetCDF_parallel_
      integer :: MPI_communicator
-     integer :: default_info = MPI_INFO_NULL
+     integer :: default_info
    contains
      procedure, pass(self) :: create_file => create_file_parallel
      procedure, pass(self) :: open_file => open_file_parallel
@@ -20,12 +20,16 @@ module netcdf_layer_base
      procedure, pass(self) :: put_var_nb => put_var_nb_real
      procedure, pass(self) :: def_dim
      procedure, pass(self) :: def_var
+     procedure, pass(self) :: put_att_scalar_int
+     procedure, pass(self) :: put_att_scalar_real
+     procedure, pass(self) :: put_att_char
      procedure, pass(self) :: inq_varid
      procedure, pass(self) :: enddef 
      procedure, pass(self) :: buffer_attach
      procedure, pass(self) :: buffer_detach
      procedure, pass(self) :: wait_all
      procedure, pass(self) :: set_comm
+     generic, public :: put_att => put_att_scalar_int, put_att_scalar_real, put_att_char
   end type NetCDF_parallel_
 
 contains
@@ -87,8 +91,11 @@ contains
     integer,                       intent( in) :: len
     integer,                       intent(out) :: dimid
     integer :: res
-    
-    res = nf90mpi_def_dim(ncid,name,len,dimid)
+    integer(kind=MPI_OFFSET_KIND) :: new_len
+
+    new_len = len
+
+    res = nf90mpi_def_dim(ncid,name,new_len,dimid)
 
   end function def_dim
 
@@ -105,6 +112,45 @@ contains
     res = nf90mpi_def_var(ncid, name, xtype, dimids, varid)
 
   end function def_var
+
+  function put_att_scalar_int(self,ncid,varid,name,values) result(res)
+    implicit none
+    class(NetCDF_parallel_),       intent( in) :: self
+    integer,               intent( in) :: ncid
+    integer,               intent( in) :: varid
+    character(len = *),    intent( in) :: name
+    integer,               intent( in) :: values
+    integer :: res
+    
+    res = nf90mpi_put_att(ncid, varid, name, values)
+   
+  end function put_att_scalar_int
+
+  function put_att_scalar_real(self,ncid,varid,name,values) result(res)
+    implicit none
+    class(NetCDF_parallel_),       intent( in) :: self
+    integer,               intent( in) :: ncid
+    integer,               intent( in) :: varid
+    character(len = *),    intent( in) :: name
+    real,               intent( in) :: values
+    integer :: res
+    
+    res = nf90mpi_put_att(ncid, varid, name, values)
+   
+  end function put_att_scalar_real
+  
+  function put_att_char(self,ncid,varid,name,values) result(res)
+    implicit none
+    class(NetCDF_parallel_),       intent( in) :: self
+    integer,               intent( in) :: ncid
+    integer,               intent( in) :: varid
+    character(len = *),    intent( in) :: name
+    character(len = 19),   intent( in) :: values
+    integer :: res
+    
+    res = nf90mpi_put_att(ncid, varid, name, values)
+   
+  end function put_att_char
 
   function inq_varid(self, ncid, name, varid) result(res)
     implicit none
@@ -134,8 +180,11 @@ contains
     integer, intent(in) :: ncid
     integer, intent(in) :: bufsize
     integer :: res
+    integer(kind=MPI_OFFSET_KIND) :: new_bufsize
 
-    res = nf90mpi_buffer_attach(ncid, bufsize)
+    new_bufsize = bufsize
+
+    res = nf90mpi_buffer_attach(ncid, new_bufsize)
 
   end function buffer_attach
 
@@ -149,22 +198,6 @@ contains
 
   end function buffer_detach
 
-  ! function put_var_nb_int(self,ncid,varid,values,req,start,count) result(res)
-  !   use pnetcdf
-  !   implicit none
-  !   class(NetCDF_parallel_), intent( in) :: self
-  !   integer, intent(in) :: ncid
-  !   integer, intent(in) :: varid
-  !   integer, intent(inout) :: values(:,:)
-  !   integer, intent(out) :: req
-  !   integer, dimension(:), intent(in   ) :: start
-  !   integer, dimension(:), intent(in   ) :: count
-  !   integer :: res
-
-  !   res = nfmpi_bput_var(ncid, varid, values, req, start, count)
-   
-  ! end function put_var_nb_int
-
   function put_var_nb_real(self,ncid,varid,values,req,start,count) result(res)
     use pnetcdf
     implicit none
@@ -173,11 +206,11 @@ contains
     integer, intent(in) :: varid
     real, intent(inout) :: values(:,:)
     integer, intent(out) :: req
-    integer, dimension(:), intent(in   ) :: start
-    integer, dimension(:), intent(in   ) :: count
+    integer(kind=MPI_OFFSET_KIND), dimension(:), intent(in   ) :: start
+    integer(kind=MPI_OFFSET_KIND), dimension(:), intent(in   ) :: count
     integer :: res
 
-    res = nfmpi_bput_var(ncid, varid, values, req, start, count)
+    res = nf90mpi_bput_var(ncid, varid, values, req, start, count)
    
   end function put_var_nb_real
 
@@ -207,8 +240,8 @@ contains
     class(NetCDF_parallel_), intent(inout) :: self
     integer, intent(in) :: mpi_comm
 
-    self%MPI_COMMUNICATOR = mpi_comm
-
+    self%MPI_COMMUNICATOR = MPI_COMM_WORLD
+    self%default_info = MPI_INFO_NULL
   end subroutine set_comm
 
 end module netcdf_layer_base
