@@ -5723,7 +5723,6 @@ end subroutine mpp_output_chrt
 
     filename = trim(outFile)
     call MPI_Bcast(filename,256,MPI_CHARACTER,IO_id,HYDRO_COMM_WORLD,iret)
-
        !iret = nf90_create(trim(outFile), OR(NF90_CLOBBER, NF90_NETCDF4), ncid)
     ! filename(index(filename,':'):index(filename,':')) = '_'
      ! call MPI_Bcast(filename, 256, MPI_CHARACTER, IO_id, HYDRO_COMM_WORLD, iret)
@@ -5787,6 +5786,7 @@ end subroutine mpp_output_chrt
              else
                 write(tmpStr, '(i2)') n
              endif
+
              iret = orchestrator%IO_manager%netcdf_parallel%def_var(ncid, "stc"//trim(tmpStr), NF90_FLOAT, (/dimid_ix,dimid_jx/), varid)
              iret = orchestrator%IO_manager%netcdf_parallel%def_var(ncid, "smc"//trim(tmpStr), NF90_FLOAT, (/dimid_ix,dimid_jx/), varid)
             iret = orchestrator%IO_manager%netcdf_parallel%def_var(ncid, "sh2ox"//trim(tmpStr), NF90_FLOAT, (/dimid_ix,dimid_jx/), varid)
@@ -5843,6 +5843,7 @@ end subroutine mpp_output_chrt
 
 !yw based on Laura request, hlink will do the restart for reach method.
 !         if(nlst(did)%channel_option .eq. 3) &
+
          iret = orchestrator%IO_manager%netcdf_parallel%def_var(ncid, "hlink", NF90_FLOAT, (/dimid_links/), varid)
          iret = orchestrator%IO_manager%netcdf_parallel%def_var(ncid, "qlink1", NF90_FLOAT, (/dimid_links/), varid)
          iret = orchestrator%IO_manager%netcdf_parallel%def_var(ncid, "qlink2", NF90_FLOAT, (/dimid_links/), varid)
