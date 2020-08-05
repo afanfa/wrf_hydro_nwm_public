@@ -5789,7 +5789,7 @@ end subroutine mpp_output_chrt
 
              iret = orchestrator%IO_manager%netcdf_parallel%def_var(ncid, "stc"//trim(tmpStr), NF90_FLOAT, (/dimid_ix,dimid_jx/), varid)
              iret = orchestrator%IO_manager%netcdf_parallel%def_var(ncid, "smc"//trim(tmpStr), NF90_FLOAT, (/dimid_ix,dimid_jx/), varid)
-            iret = orchestrator%IO_manager%netcdf_parallel%def_var(ncid, "sh2ox"//trim(tmpStr), NF90_FLOAT, (/dimid_ix,dimid_jx/), varid)
+             iret = orchestrator%IO_manager%netcdf_parallel%def_var(ncid, "sh2ox"//trim(tmpStr), NF90_FLOAT, (/dimid_ix,dimid_jx/), varid)
 !             iret = nf90_def_var(ncid, "stc"//trim(tmpStr), NF90_FLOAT, (/dimid_ix,dimid_jx/), varid)
 !             iret = nf90_def_var(ncid, "smc"//trim(tmpStr), NF90_FLOAT, (/dimid_ix,dimid_jx/), varid)
 !             iret = nf90_def_var(ncid, "sh2ox"//trim(tmpStr), NF90_FLOAT, (/dimid_ix,dimid_jx/), varid)
