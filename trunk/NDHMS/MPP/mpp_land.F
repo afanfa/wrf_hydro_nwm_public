@@ -843,6 +843,17 @@ MODULE MODULE_MPP_LAND
 
   end subroutine get_local_ij_count
 
+  subroutine get_local_rt_ij_count(start,counts)
+    integer, dimension(2), intent(out) :: start,counts
+
+    start(1) = startx(my_id+1)
+    start(2) = starty(my_id+1)
+
+    counts(1) = local_rt_nx_size(my_id+1)
+    counts(2) = local_rt_ny_size(my_id+1)
+
+  end subroutine get_local_rt_ij_count
+
   subroutine write_IO_RT_real(in_buff,out_buff)
 ! the IO node will receive the data from the rest process.
       real,dimension(:,:) ::  in_buff, out_buff

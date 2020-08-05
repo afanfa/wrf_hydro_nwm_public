@@ -5613,7 +5613,7 @@ end subroutine mpp_output_chrt
      if(IO_id.eq.my_id) &
 #endif
 
-      iret = orchestrator%IO_manager%netcdf_parallel%create_file(trim(outFile), OR(NF90_CLOBBER, NF90_NETCDF4), ncid)
+      iret = orchestrator%IO_manager%netcdf_serial%create_file(trim(outFile), OR(NF90_CLOBBER, NF90_NETCDF4), ncid)
 
 #ifdef MPP_LAND
        call mpp_land_bcast_int1(iret)
@@ -5632,11 +5632,11 @@ end subroutine mpp_output_chrt
 #endif
 ! define dimension for variables
           !iret = nf90_def_dim(ncid, "depth", nlst(did)%nsoil, dimid_soil)  !-- 3-d soils
-          iret = orchestrator%IO_manager%netcdf_parallel%def_dim(ncid, "depth", nlst(did)%nsoil, dimid_soil)
+          iret = orchestrator%IO_manager%netcdf_serial%def_dim(ncid, "depth", nlst(did)%nsoil, dimid_soil)
 #ifdef MPP_LAND
-          iret = orchestrator%IO_manager%netcdf_parallel%def_dim(ncid, "ix", global_nx, dimid_ix)
+          iret = orchestrator%IO_manager%netcdf_serial%def_dim(ncid, "ix", global_nx, dimid_ix)
           !iret = nf90_def_dim(ncid, "ix", global_nx, dimid_ix)  !-- make a decimated grid
-          iret = orchestrator%IO_manager%netcdf_parallel%def_dim(ncid, "iy", global_ny, dimid_jx)
+          iret = orchestrator%IO_manager%netcdf_serial%def_dim(ncid, "iy", global_ny, dimid_jx)
           ! iret = nf90_def_dim(ncid, "iy", global_ny, dimid_jx)
 #else
           iret = nf90_def_dim(ncid, "ix", rt_domain(did)%ix, dimid_ix)  !-- make a decimated grid
@@ -5650,9 +5650,9 @@ end subroutine mpp_output_chrt
              else
                 write(tmpStr, '(i2)') n
              endif
-             iret = orchestrator%IO_manager%netcdf_parallel%def_var(ncid, "stc"//trim(tmpStr), NF90_FLOAT, (/dimid_ix,dimid_jx/), varid)
-             iret = orchestrator%IO_manager%netcdf_parallel%def_var(ncid, "smc"//trim(tmpStr), NF90_FLOAT, (/dimid_ix,dimid_jx/), varid)
-             iret = orchestrator%IO_manager%netcdf_parallel%def_var(ncid, "sh2ox"//trim(tmpStr), NF90_FLOAT, (/dimid_ix,dimid_jx/), varid)
+             iret = orchestrator%IO_manager%netcdf_serial%def_var(ncid, "stc"//trim(tmpStr), NF90_FLOAT, (/dimid_ix,dimid_jx/), varid)
+             iret = orchestrator%IO_manager%netcdf_serial%def_var(ncid, "smc"//trim(tmpStr), NF90_FLOAT, (/dimid_ix,dimid_jx/), varid)
+             iret = orchestrator%IO_manager%netcdf_serial%def_var(ncid, "sh2ox"//trim(tmpStr), NF90_FLOAT, (/dimid_ix,dimid_jx/), varid)
              ! iret = nf90_def_var(ncid, "stc"//trim(tmpStr), NF90_FLOAT, (/dimid_ix,dimid_jx/), varid)
              ! iret = nf90_def_var(ncid, "smc"//trim(tmpStr), NF90_FLOAT, (/dimid_ix,dimid_jx/), varid)
              ! iret = nf90_def_var(ncid, "sh2ox"//trim(tmpStr), NF90_FLOAT, (/dimid_ix,dimid_jx/), varid)
@@ -5662,20 +5662,20 @@ end subroutine mpp_output_chrt
           !iret = nf90_def_var(ncid, "smcref1", NF90_FLOAT, (/dimid_ix,dimid_jx/), varid)
           !iret = nf90_def_var(ncid, "smcwlt1", NF90_FLOAT, (/dimid_ix,dimid_jx/), varid)
 
-          iret = orchestrator%IO_manager%netcdf_parallel%def_var(ncid, "infxsrt", NF90_FLOAT, (/dimid_ix,dimid_jx/), varid)
-          iret = orchestrator%IO_manager%netcdf_parallel%def_var(ncid, "sfcheadrt", NF90_FLOAT, (/dimid_ix,dimid_jx/), varid)
+          iret = orchestrator%IO_manager%netcdf_serial%def_var(ncid, "infxsrt", NF90_FLOAT, (/dimid_ix,dimid_jx/), varid)
+          iret = orchestrator%IO_manager%netcdf_serial%def_var(ncid, "sfcheadrt", NF90_FLOAT, (/dimid_ix,dimid_jx/), varid)
 !          iret = nf90_def_var(ncid, "infxsrt", NF90_FLOAT, (/dimid_ix,dimid_jx/), varid)
 !          iret = nf90_def_var(ncid, "sfcheadrt", NF90_FLOAT, (/dimid_ix,dimid_jx/), varid)
 
-          iret = orchestrator%IO_manager%netcdf_parallel%enddef(ncid)
+          iret = orchestrator%IO_manager%netcdf_serial%enddef(ncid)
 !          iret = nf90_enddef(ncid)
 
 #ifdef MPP_LAND
     endif
 #endif
-        call w_rst_nc3_parallel(ncid,rt_domain(did)%ix,rt_domain(did)%jx,nlst(did)%nsoil,rt_domain(did)%stc,"stc")
-        call w_rst_nc3_parallel(ncid,rt_domain(did)%ix,rt_domain(did)%jx,nlst(did)%nsoil,rt_domain(did)%smc,"smc")
-        call w_rst_nc3_parallel(ncid,rt_domain(did)%ix,rt_domain(did)%jx,nlst(did)%nsoil,rt_domain(did)%sh2ox,"sh2ox")
+        call w_rst_nc3(ncid,rt_domain(did)%ix,rt_domain(did)%jx,nlst(did)%nsoil,rt_domain(did)%stc,"stc")
+        call w_rst_nc3(ncid,rt_domain(did)%ix,rt_domain(did)%jx,nlst(did)%nsoil,rt_domain(did)%smc,"smc")
+        call w_rst_nc3(ncid,rt_domain(did)%ix,rt_domain(did)%jx,nlst(did)%nsoil,rt_domain(did)%sh2ox,"sh2ox")
         !call w_rst_nc2(ncid,rt_domain(did)%ix,rt_domain(did)%jx,rt_domain(did)%SMCMAX1,"smcmax1")
         !call w_rst_nc2(ncid,rt_domain(did)%ix,rt_domain(did)%jx,rt_domain(did)%SMCREF1,"smcref1" )
         !call w_rst_nc2(ncid,rt_domain(did)%ix,rt_domain(did)%jx,rt_domain(did)%SMCWLT1,"smcwlt1"  )
@@ -5686,7 +5686,7 @@ end subroutine mpp_output_chrt
 #ifdef MPP_LAND
      if(IO_id.eq.my_id) then
 #endif
-        iret = orchestrator%IO_manager%netcdf_parallel%close_file(ncid)
+        iret = orchestrator%IO_manager%netcdf_serial%close_file(ncid)
 !        iret = nf90_close(ncid)
 #ifdef HYDRO_D
         write(6,*) "finish writing outFile : ", outFile
@@ -5962,7 +5962,7 @@ if(nlst(did)%SUBRTSWCRT  .eq. 1 .or. &
       call w_rst_rt_nc2(ncid,rt_domain(did)%ixrt,rt_domain(did)%jxrt,rt_domain(did)%overland%control%boundary_flux, "QBDRYRT" )
       call w_rst_rt_nc2(ncid,rt_domain(did)%ixrt,rt_domain(did)%jxrt,rt_domain(did)%INFXSWGT, "infxswgt" )
       call w_rst_rt_nc2(ncid,rt_domain(did)%ixrt,rt_domain(did)%jxrt,rt_domain(did)%overland%control%surface_water_head_routing, "sfcheadsubrt" )
-      call w_rst_rt_nc3(ncid,rt_domain(did)%ixrt,rt_domain(did)%jxrt,nlst(did)%nsoil,rt_domain(did)%SH2OWGT, "sh2owgt" )
+      call w_rst_rt_nc3_parallel(ncid,rt_domain(did)%ixrt,rt_domain(did)%jxrt,nlst(did)%nsoil,rt_domain(did)%SH2OWGT, "sh2owgt" )
       call w_rst_rt_nc2(ncid,rt_domain(did)%ixrt,rt_domain(did)%jxrt,rt_domain(did)%QSTRMVOLRT_ACC, "qstrmvolrt" )
       !AD_CHANGE: Not needed in RESTART
       !call w_rst_rt_nc2(ncid,rt_domain(did)%ixrt,rt_domain(did)%jxrt,rt_domain(did)%overland%properties%retention_depth, "RETDEPRT" )
@@ -6378,6 +6378,44 @@ end if  ! end if(nlst_rt(did)%SUBRTSWCRT  .eq. 1 .or. &
 #endif
            return
         end subroutine w_rst_rt_nc3
+
+        subroutine w_rst_rt_nc3_parallel(ncid,ix,jx,NSOIL,inVar, varName)
+           implicit none
+           integer:: ncid,ix,jx,varid , iret, nsoil
+           character(len=*) varName
+           real,dimension(ix,jx,nsoil):: inVar
+           character(len=2) tmpStr
+           integer k
+           integer, dimension(2) :: start,counts
+#ifdef MPP_LAND
+           real varTmp(global_rt_nx,global_rt_ny)
+           do k = 1, nsoil
+!              call write_IO_rt_real(inVar(:,:,k),varTmp(:,:))
+              call get_local_rt_ij_count(start,counts)
+ !             if(my_id .eq. IO_id) then
+                 if( k .lt. 10) then
+                    write(tmpStr, '(i1)') k
+                 else
+                    write(tmpStr, '(i2)') k
+                 endif
+                 iret = nf90_inq_varid(ncid,varName//trim(tmpStr), varid)
+                 iret = orchestrator%IO_manager%netcdf_parallel%var_par_access(ncid, varid, NF90_COLLECTIVE)
+                 iret = nf90_put_var(ncid, varid, varTmp, start, counts)
+!              endif
+           end do
+#else
+           do k = 1, nsoil
+                 if( k .lt. 10) then
+                    write(tmpStr, '(i1)') k
+                 else
+                    write(tmpStr, '(i2)') k
+                 endif
+              iret = nf90_inq_varid(ncid,varName//trim(tmpStr), varid)
+              iret = nf90_put_var(ncid, varid, inVar(:,:,k), (/1,1/), (/ix,jx/))
+           end do
+#endif
+           return
+        end subroutine w_rst_rt_nc3_parallel
 
         subroutine w_rst_nc2(ncid,ix,jx,inVar,varName)
            implicit none
