@@ -24,11 +24,11 @@ module module_NoahMP_hrldas_driver
   USE module_sf_noahmp_groundwater
   USE module_sf_noahmpdrv, only: noahmp_init, noahmplsm
   USE module_date_utilities
-  USE orchestrator_base
+  USE orchestrator_base, only: orchestrator
   USE config_base, only: wrf_hydro, noah_lsm
 #ifdef MPP_LAND
   use module_mpp_land, only: MPP_LAND_PAR_INI, mpp_land_init, getLocalXY, mpp_land_bcast_char, mpp_land_sync
-  use module_mpp_land, only: check_land, node_info, numprocs
+  use module_mpp_land, only: check_land, node_info, numprocs, hydro_comm_world
   use module_cpl_land, only: cpl_land_init, fatal_error_stop
   !use mpi
 #endif
@@ -412,6 +412,8 @@ module module_NoahMP_hrldas_driver
     integer, optional, intent(in) :: wrfits,wrfite,wrfjts,wrfjte
 #ifdef MPP_LAND
     call  MPP_LAND_INIT()
+    ! Needed to initialize PNetCDF
+    call orchestrator%IO_manager%set_communicator(HYDRO_COMM_WORLD)
 #endif
 
 #ifdef WRF_HYDRO
