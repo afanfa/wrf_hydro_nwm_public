@@ -257,9 +257,12 @@ contains
   subroutine set_comm(self,mpi_comm)
     class(NetCDF_parallel_), intent(inout) :: self
     integer, intent(in) :: mpi_comm
+    integer :: info, ierr
 
     self%MPI_COMMUNICATOR = MPI_COMM_WORLD
-    self%default_info = MPI_INFO_NULL
+    call MPI_Info_create(info,ierr)
+    call MPI_Info_set(info, "striping_unit", "4194304", ierr) 
+    self%default_info = info
   end subroutine set_comm
 
 end module netcdf_layer_base
