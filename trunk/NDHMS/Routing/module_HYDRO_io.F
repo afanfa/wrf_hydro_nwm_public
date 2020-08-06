@@ -5722,13 +5722,14 @@ end subroutine mpp_output_chrt
 ! #endif
 
     filename = trim(outFile)
-    call MPI_Bcast(filename,256,MPI_CHARACTER,IO_id,HYDRO_COMM_WORLD,iret)
+    !call MPI_Bcast(filename,256,MPI_CHARACTER,IO_id,HYDRO_COMM_WORLD,iret)
        !iret = nf90_create(trim(outFile), OR(NF90_CLOBBER, NF90_NETCDF4), ncid)
-    ! filename(index(filename,':'):index(filename,':')) = '_'
-     ! call MPI_Bcast(filename, 256, MPI_CHARACTER, IO_id, HYDRO_COMM_WORLD, iret)
+    filename(index(filename,':'):index(filename,':')) = '_'
+    call MPI_Bcast(filename, 256, MPI_CHARACTER, IO_id, HYDRO_COMM_WORLD, iret)
 
     !iret = orchestrator%IO_manager%netcdf_parallel%create_file(trim(outFile), OR(NF90_CLOBBER, NF90_NETCDF4), ncid)
     iret = orchestrator%IO_manager%netcdf_parallel%create_file(filename, IOR(NF90_NETCDF4, NF90_MPIIO), ncid)
+    if(iret /= 0) write(*,*) "File creation ",iret, nf90_strerror(iret), filename
 
 #ifdef MPP_LAND
        call mpp_land_bcast_int1(iret)
@@ -6399,8 +6400,11 @@ end if  ! end if(nlst_rt(did)%SUBRTSWCRT  .eq. 1 .or. &
                     write(tmpStr, '(i2)') k
                  endif
                  iret = nf90_inq_varid(ncid,varName//trim(tmpStr), varid)
+                 if(iret /= 0) write(*,*) iret, nf90_strerror(iret)
                  iret = orchestrator%IO_manager%netcdf_parallel%var_par_access(ncid, varid, NF90_COLLECTIVE)
+                 if(iret /= 0) write(*,*) iret, nf90_strerror(iret)
                  iret = nf90_put_var(ncid, varid, varTmp, start, counts)
+                 if(iret /= 0) write(*,*) iret, nf90_strerror(iret)
 !              endif
            end do
 #else
@@ -6494,8 +6498,11 @@ end if  ! end if(nlst_rt(did)%SUBRTSWCRT  .eq. 1 .or. &
                     write(tmpStr, '(i2)') k
                  endif
                 iret = nf90_inq_varid(ncid,varName//trim(tmpStr), varid)
+                 if(iret /= 0) write(*,*) "nc3_parallel",iret, nf90_strerror(iret)
                 iret = orchestrator%IO_manager%netcdf_parallel%var_par_access(ncid, varid, NF90_COLLECTIVE)
+                 if(iret /= 0) write(*,*) "nc3_parallel",iret, nf90_strerror(iret)
                 iret = nf90_put_var(ncid, varid, varTmp, start, counts)
+                if(iret /= 0) write(*,*) "nc3_parallel",iret, nf90_strerror(iret),size(varTmp,1),size(varTmp,2)
               !endif
            end do
 #else

@@ -838,6 +838,9 @@ MODULE MODULE_MPP_LAND
     start(1) = startx(my_id+1)
     start(2) = starty(my_id+1)
 
+    if(start(1) .eq. 0) start(1) = 1
+    if(start(2) .eq. 0) start(2) = 1
+
     counts(1) = local_nx_size(my_id+1)
     counts(2) = local_ny_size(my_id+1)
 
@@ -849,8 +852,8 @@ MODULE MODULE_MPP_LAND
     start(1) = startx(my_id+1)
     start(2) = starty(my_id+1)
 
-    if(start(1).gt.1) start(1)=start(1) - 1
-    if(start(2).gt.1) start(2)=start(2) - 1
+    if(start(1) .eq. 0) start(1) = 1
+    if(start(2) .eq. 0) start(2) = 1
 
     counts(1) = local_rt_nx_size(my_id+1)
     counts(2) = local_rt_ny_size(my_id+1)
