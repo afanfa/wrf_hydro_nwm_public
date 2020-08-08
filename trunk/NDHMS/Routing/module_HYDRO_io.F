@@ -6389,7 +6389,7 @@ end if  ! end if(nlst_rt(did)%SUBRTSWCRT  .eq. 1 .or. &
            integer k
            integer, dimension(2) :: start,counts
 #ifdef MPP_LAND
-           real varTmp(global_rt_nx,global_rt_ny)
+           ! real varTmp(global_rt_nx,global_rt_ny)
            do k = 1, nsoil
 !              call write_IO_rt_real(inVar(:,:,k),varTmp(:,:))
               call get_local_rt_ij_count(start,counts)
@@ -6403,7 +6403,7 @@ end if  ! end if(nlst_rt(did)%SUBRTSWCRT  .eq. 1 .or. &
                  if(iret /= 0) write(*,*) iret, nf90_strerror(iret)
                  iret = orchestrator%IO_manager%netcdf_parallel%var_par_access(ncid, varid, NF90_COLLECTIVE)
                  if(iret /= 0) write(*,*) iret, nf90_strerror(iret)
-                 iret = nf90_put_var(ncid, varid, varTmp, start, counts)
+                 iret = nf90_put_var(ncid, varid, inVar(:,:,k), start, counts)
                  if(iret /= 0) write(*,*) iret, nf90_strerror(iret)
 !              endif
            end do
@@ -6487,7 +6487,7 @@ end if  ! end if(nlst_rt(did)%SUBRTSWCRT  .eq. 1 .or. &
            character(len=2) tmpStr
            integer, dimension(2) :: start,counts
 #ifdef MPP_LAND
-           real varTmp(global_nx,global_ny)
+           ! real varTmp(global_nx,global_ny)
            do k = 1, nsoil
             !  call write_IO_real(inVar(:,:,k),varTmp(:,:))
               call get_local_ij_count(start,counts)
@@ -6501,8 +6501,8 @@ end if  ! end if(nlst_rt(did)%SUBRTSWCRT  .eq. 1 .or. &
                  if(iret /= 0) write(*,*) "nc3_parallel",iret, nf90_strerror(iret)
                 iret = orchestrator%IO_manager%netcdf_parallel%var_par_access(ncid, varid, NF90_COLLECTIVE)
                  if(iret /= 0) write(*,*) "nc3_parallel",iret, nf90_strerror(iret)
-                iret = nf90_put_var(ncid, varid, varTmp, start, counts)
-                if(iret /= 0) write(*,*) "nc3_parallel",iret, nf90_strerror(iret),size(varTmp,1),size(varTmp,2)
+                iret = nf90_put_var(ncid, varid, inVar(:,:,k), start, counts)
+                if(iret /= 0) write(*,*) "nc3_parallel",iret, nf90_strerror(iret)
               !endif
            end do
 #else
