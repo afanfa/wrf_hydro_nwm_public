@@ -71,8 +71,14 @@ contains
     integer,             intent(in   ) :: cmode
     integer,             intent(  out) :: ncid
     integer                            :: res
+    integer                            :: old_mode
     
     res = nf90_create(path, cmode, ncid, comm = self%MPI_COMMUNICATOR, info = self%default_info)
+
+    if(res /= 0) write(*,*) "Error during file creation ",res, nf90_strerror(res), path
+
+    res = nf90_set_fill(ncid, NF90_NOFILL, old_mode)
+    if(res /= 0) write(*,*) "Error during file nofill ",res, nf90_strerror(res)
  
   end function create_file_parallel
 

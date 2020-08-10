@@ -5714,7 +5714,7 @@ end subroutine mpp_output_chrt
     integer :: ncid,irt, dimid_ix, dimid_jx,  &
              dimid_ixrt, dimid_jxrt, varid, &
              dimid_links, dimid_basns, dimid_soil, dimid_lakes
-    integer :: iret
+    integer :: iret, old_mode
 
 
 ! #ifdef MPP_LAND
@@ -5729,7 +5729,6 @@ end subroutine mpp_output_chrt
 
     !iret = orchestrator%IO_manager%netcdf_parallel%create_file(trim(outFile), OR(NF90_CLOBBER, NF90_NETCDF4), ncid)
     iret = orchestrator%IO_manager%netcdf_parallel%create_file(filename, IOR(NF90_NETCDF4, NF90_MPIIO), ncid)
-    if(iret /= 0) write(*,*) "File creation ",iret, nf90_strerror(iret), filename
 
 #ifdef MPP_LAND
        call mpp_land_bcast_int1(iret)
@@ -5948,9 +5947,9 @@ if( nlst(did)%channel_only       .eq. 0 .and. &
    !call w_rst_nc2(ncid,rt_domain(did)%ix,rt_domain(did)%jx,rt_domain(did)%SMCMAX1,"smcmax1")
    !call w_rst_nc2(ncid,rt_domain(did)%ix,rt_domain(did)%jx,rt_domain(did)%SMCREF1,"smcref1" )
    !call w_rst_nc2(ncid,rt_domain(did)%ix,rt_domain(did)%jx,rt_domain(did)%SMCWLT1,"smcwlt1"  )
-   call w_rst_nc2(ncid,rt_domain(did)%ix,rt_domain(did)%jx,rt_domain(did)%INFXSRT,"infxsrt"  )
-   call w_rst_nc2(ncid,rt_domain(did)%ix,rt_domain(did)%jx,rt_domain(did)%soldrain,"soldrain"  )
-   call w_rst_nc2(ncid,rt_domain(did)%ix,rt_domain(did)%jx,rt_domain(did)%overland%control%surface_water_head_lsm,"sfcheadrt"  )
+   call w_rst_nc2_parallel(ncid,rt_domain(did)%ix,rt_domain(did)%jx,rt_domain(did)%INFXSRT,"infxsrt"  )
+   call w_rst_nc2_parallel(ncid,rt_domain(did)%ix,rt_domain(did)%jx,rt_domain(did)%soldrain,"soldrain"  )
+   call w_rst_nc2_parallel(ncid,rt_domain(did)%ix,rt_domain(did)%jx,rt_domain(did)%overland%control%surface_water_head_lsm,"sfcheadrt"  )
 
 end if ! neither channel_only nor channelBucket_only
 
@@ -5960,11 +5959,11 @@ if(nlst(did)%SUBRTSWCRT  .eq. 1 .or. &
 
    if( nlst(did)%channel_only       .eq. 0 .and. &
        nlst(did)%channelBucket_only .eq. 0         ) then
-      call w_rst_rt_nc2(ncid,rt_domain(did)%ixrt,rt_domain(did)%jxrt,rt_domain(did)%overland%control%boundary_flux, "QBDRYRT" )
-      call w_rst_rt_nc2(ncid,rt_domain(did)%ixrt,rt_domain(did)%jxrt,rt_domain(did)%INFXSWGT, "infxswgt" )
-      call w_rst_rt_nc2(ncid,rt_domain(did)%ixrt,rt_domain(did)%jxrt,rt_domain(did)%overland%control%surface_water_head_routing, "sfcheadsubrt" )
+      call w_rst_rt_nc2_parallel(ncid,rt_domain(did)%ixrt,rt_domain(did)%jxrt,rt_domain(did)%overland%control%boundary_flux, "QBDRYRT" )
+      call w_rst_rt_nc2_parallel(ncid,rt_domain(did)%ixrt,rt_domain(did)%jxrt,rt_domain(did)%INFXSWGT, "infxswgt" )
+      call w_rst_rt_nc2_parallel(ncid,rt_domain(did)%ixrt,rt_domain(did)%jxrt,rt_domain(did)%overland%control%surface_water_head_routing, "sfcheadsubrt" )
       call w_rst_rt_nc3_parallel(ncid,rt_domain(did)%ixrt,rt_domain(did)%jxrt,nlst(did)%nsoil,rt_domain(did)%SH2OWGT, "sh2owgt" )
-      call w_rst_rt_nc2(ncid,rt_domain(did)%ixrt,rt_domain(did)%jxrt,rt_domain(did)%QSTRMVOLRT_ACC, "qstrmvolrt" )
+      call w_rst_rt_nc2_parallel(ncid,rt_domain(did)%ixrt,rt_domain(did)%jxrt,rt_domain(did)%QSTRMVOLRT_ACC, "qstrmvolrt" )
       !AD_CHANGE: Not needed in RESTART
       !call w_rst_rt_nc2(ncid,rt_domain(did)%ixrt,rt_domain(did)%jxrt,rt_domain(did)%overland%properties%retention_depth, "RETDEPRT" )
    end if ! neither channel_only nor channelBucket_only
@@ -6085,7 +6084,7 @@ if(nlst(did)%SUBRTSWCRT  .eq. 1 .or. &
       if( nlst(did)%channel_only       .eq. 0 .and. &
           nlst(did)%channelBucket_only .eq. 0         ) &
 
-          call w_rst_rt_nc2(ncid,rt_domain(did)%ixrt,rt_domain(did)%jxrt,rt_domain(did)%overland%streams_and_lakes%surface_water_to_lake,"lake_inflort")
+          call w_rst_rt_nc2_parallel(ncid,rt_domain(did)%ixrt,rt_domain(did)%jxrt,rt_domain(did)%overland%streams_and_lakes%surface_water_to_lake,"lake_inflort")
 
    end if  !    if(nlst_rt(did)%CHANRTSWCRT.eq.1)
 
@@ -6121,7 +6120,7 @@ if(nlst(did)%SUBRTSWCRT  .eq. 1 .or. &
    if(nlst(did)%GWBASESWCRT.eq.3) then
       if( nlst(did)%channel_only       .eq. 0 .and. &
           nlst(did)%channelBucket_only .eq. 0         ) &
-          call w_rst_rt_nc2(ncid,rt_domain(did)%ixrt,rt_domain(did)%jxrt,gw2d(did)%ho, "HEAD" )
+          call w_rst_rt_nc2_parallel(ncid,rt_domain(did)%ixrt,rt_domain(did)%jxrt,gw2d(did)%ho, "HEAD" )
    end if
 
 end if  ! end if(nlst_rt(did)%SUBRTSWCRT  .eq. 1 .or. &
@@ -6345,6 +6344,43 @@ end if  ! end if(nlst_rt(did)%SUBRTSWCRT  .eq. 1 .or. &
            return
         end subroutine w_rst_rt_nc2
 
+        subroutine w_rst_rt_nc2_parallel(ncid,ix,jx,inVar,varName)
+           implicit none
+           integer:: ncid,ix,jx,varid , iret
+           character(len=*) varName
+           real, dimension(ix,jx):: inVar
+!#ifdef MPP_LAND
+!           real, allocatable, dimension(:,:) :: varTmp
+           integer, dimension(2) :: start,counts
+!           if(my_id .eq. io_id ) then
+!               allocate(varTmp(global_rt_nx, global_rt_ny))
+!           else
+!               allocate(varTmp(1,1))
+!           endif
+!           call write_IO_rt_real(inVar,varTmp)
+!           if(my_id .eq. IO_id) then
+           call get_local_rt_ij_count(start,counts)
+           iret = nf90_inq_varid(ncid,varName, varid)
+           iret = orchestrator%IO_manager%netcdf_parallel%var_par_access(ncid, varid, NF90_COLLECTIVE)
+           if(iret .eq. 0) then
+              iret = nf90_put_var(ncid, varid, inVar, start, counts)
+           else
+              write(6,*) "Error: variable not defined in rst file before write: ", varName
+           endif
+           !           endif
+!           if(allocated(varTmp))  deallocate(varTmp)
+!#else
+!            iret = nf90_inq_varid(ncid,varName, varid)
+!            if(iret .eq. 0) then
+!               iret = nf90_put_var(ncid, varid, inVar, (/1,1/), (/ix,jx/))
+!            else
+!               write(6,*) "Error : variable not defined in rst file before write: ", varName
+!            endif
+! #endif
+
+           return
+        end subroutine w_rst_rt_nc2_parallel
+
         subroutine w_rst_rt_nc3(ncid,ix,jx,NSOIL,inVar, varName)
            implicit none
            integer:: ncid,ix,jx,varid , iret, nsoil
@@ -6441,6 +6477,29 @@ end if  ! end if(nlst_rt(did)%SUBRTSWCRT  .eq. 1 .or. &
 
            return
         end subroutine w_rst_nc2
+
+        subroutine w_rst_nc2_parallel(ncid,ix,jx,inVar,varName)
+           implicit none
+           integer:: ncid,ix,jx,varid , iret
+           character(len=*) varName
+           real inVar(ix,jx)
+           integer, dimension(2) :: start,counts
+!#ifdef MPP_LAND
+           !real varTmp(global_nx,global_ny)
+           !call write_IO_real(inVar,varTmp)
+!           if(my_id .eq. IO_id) then
+           call get_local_ij_count(start,counts)
+           iret = nf90_inq_varid(ncid,varName, varid)
+           iret = orchestrator%IO_manager%netcdf_parallel%var_par_access(ncid, varid, NF90_COLLECTIVE)
+           iret = nf90_put_var(ncid, varid, inVar, start, counts)
+           !           endif
+! #else
+!            iret = nf90_inq_varid(ncid,varName, varid)
+!            iret = nf90_put_var(ncid, varid, invar, (/1,1/), (/ix,jx/))
+! #endif
+
+           return
+        end subroutine w_rst_nc2_parallel
 
         subroutine w_rst_nc3(ncid,ix,jx,NSOIL,inVar, varName)
            implicit none
